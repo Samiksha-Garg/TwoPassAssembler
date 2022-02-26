@@ -7,6 +7,7 @@ using namespace std;
 
 vector <pair <int, string> > errors;
 map <string, pair <int, int> > opcodes;
+map <string, pair <int,int> > symbolTable;
 
 string removeLeadingSpaces(string line) {
     int i = 0;
@@ -117,6 +118,32 @@ int hasSymbol(string instruction){
     int idx = instruction.find("~");
     if(idx < 0 || idx >= instruction.size())return -1;
     else return idx;
+}
+void addSymbol(string symbol, int lc, int lineNo){
+    if(symbol.size() == 0){
+        errors.push_back(make_pair(lineNo, "ERROR : No symbol found"));
+        return;
+    }
+    if(opcodes.count(symbol) == 1){
+        errors.push_back(make_pair(lineNo, "ERROR: Opcode used as label"));
+        return;
+    }
+    if((symbolTable.count(symbol) == 1)){
+        if(symbolTable[symbol].second != -1){
+            if(symbolTable[symbol].first == -2){
+                errors.push_back(make_pair(lineNo, "ERROR: Variable " + symbol + " used as Label"));
+                return;
+            }
+        }
+        else{
+            errors.push_back(make_pair(lineNo, "ERROR: Symbol " + symbol +"   already declared"));
+            return;
+        }
+    }
+    if(!isValidSymbol(symbol, lineNo)){
+        return;
+    }
+    symbolTable[symbol] = make_pair(lc, -1);
 }
 int main() {
 
