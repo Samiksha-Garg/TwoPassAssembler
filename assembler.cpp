@@ -122,29 +122,29 @@ int hasSymbol(string instruction){
 
 pair <string, string> getOpcodeAndOpernad(string line) {
     line = removeLeadingSpaces(line);
-    inr len = line.length();
+    int len = line.length();
 
     string op1 = "";
     int i = 0;
 
     for (; i < len; i++) {
-        if (lines[i] == ' ') {
+        if (line[i] == ' ') {
             i++;
             break;
         }
 
-        op1 += lines[i];
+        op1 += line[i];
     }
 
     string op2 = "";
 
     for (; i < len; i++) {
-        if (lines[i] == ' ') {
+        if (line[i] == ' ') {
             i++;
             break;
         }
 
-        op2 += lines[i];
+        op2 += line[i];
     }
 
     op2 = removeLeadingSpaces(op2);
@@ -153,10 +153,37 @@ pair <string, string> getOpcodeAndOpernad(string line) {
 
 }
 
-int passOne(vector <int> lines) {
+void addSymbol(string symbol, int lc, int lineNo){
+    if(symbol.size() == 0){
+        errors.push_back(make_pair(lineNo, "ERROR : No symbol found"));
+        return;
+    }
+    if(opcodes.count(symbol) == 1){
+        errors.push_back(make_pair(lineNo, "ERROR: Opcode used as label"));
+        return;
+    }
+    if((symbolTable.count(symbol) == 1)){
+        if(symbolTable[symbol].second != -1){
+            if(symbolTable[symbol].first == -2){
+                errors.push_back(make_pair(lineNo, "ERROR: Variable " + symbol + " used as Label"));
+                return;
+            }
+        }
+        else{
+            errors.push_back(make_pair(lineNo, "ERROR: Symbol " + symbol +"   already declared"));
+            return;
+        }
+    }
+    if(!isValidSymbol(symbol, lineNo)){
+        return;
+    }
+    symbolTable[symbol] = make_pair(lc, -1);
+}
+
+int passOne(vector <string> lines) {
     int lc = 0;
     int lineNumber = 0;
-    int len = lines.length();
+    int len = lines.size();
 
     while (lineNumber < len) {
         string line = lines[lineNumber];
@@ -197,8 +224,8 @@ int passOne(vector <int> lines) {
         }
 
         if (symbolTable.count(opr) == 0) {
-            if (isValidSymbol(opr)) {
-                if (opc.find('BR') != string::npos) {
+            if (isValidSymbol(opr, lineNumber)) {
+                if (opc.find("BR") != string::npos) {
                     symbolTable[opr] = make_pair(-1, lineNumber);
                 } else {
                     symbolTable[opr] = make_pair(-2, lineNumber);
@@ -206,11 +233,11 @@ int passOne(vector <int> lines) {
             }
 
         } else {
-            if (opc.find('BR') != string::npos && symbolTable[opr].first == -2) {
+            if (opc.find("BR") != string::npos && symbolTable[opr].first == -2) {
                  errors.push_back(make_pair(lineNumber, "ERROR : Variable name can't be used as a jump location"));
             }
 
-            if (opc.find('BR') == string :: npos && symbolTable[opr].first == -1) {
+            if (opc.find("BR") == string :: npos && symbolTable[opr].first == -1) {
                 errors.push_back(make_pair(lineNumber, "ERROR : Invalid use of " + opr + ", it has already been used as a jump location."));
             }
         }
@@ -223,6 +250,7 @@ int passOne(vector <int> lines) {
     return lc;
 
 }
+
 
 int main() {
 
