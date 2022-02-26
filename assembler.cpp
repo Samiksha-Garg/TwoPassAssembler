@@ -8,7 +8,23 @@ using namespace std;
 vector <pair <int, string> > errors;
 map <string, pair <int, int> > opcodes;
 map <string, pair <int,int> > symbolTable;
-
+vector <string> instruction;
+vector <string> getInstructionVector(string filename){
+    string line;
+    vector <string> instructions;
+    ifstream input_file(filename);
+    if(!input_file.is_open()){
+        cerr << "Could not open the file - '"
+             << filename << "'" << endl;
+        return;
+    }
+    else{
+        while (getline(input_file, line)){
+            if(line.size() != 0)instructions.push_back(line);
+        }
+    }
+    return instructions;
+}
 string removeLeadingSpaces(string line) {
     int i = 0;
     int len = line.length();
