@@ -55,7 +55,16 @@ map <string, pair <int, int> > opcodeMap(string filename) {
 
     return opcodes;
 }
-
+int hasComment(string instruction){
+    int idx = instruction.find("//");
+    if(idx < 0 || idx >= instruction.size())return -1;
+    else return idx;
+}
+int hasSymbol(string instruction){
+    int idx = instruction.find("~");
+    if(idx < 0 || idx >= instruction.size())return -1;
+    else return idx;
+}
 int main() {
 
     string filename = "opcode.assm";
