@@ -7,6 +7,7 @@ using namespace std;
 
 vector <pair <int, string> > errors;
 map <string, pair <int, int> > opcodes;
+map <string, pair <int,int> > symbolTable;
 
 string removeLeadingSpaces(string line) {
     int i = 0;
@@ -31,7 +32,7 @@ bool isValidSymbol(string symbol, int line) {
     }
 
     if (opcodes.count(symbol) == 1) {
-        errors.push_back(make_pair(line, "ERROR : Opcode used as variable"));
+        errors.push_back(make_pair(line, "ERROR : Opcode used as symbol name"));
         return false;
     }
 
@@ -118,11 +119,115 @@ int hasSymbol(string instruction){
     if(idx < 0 || idx >= instruction.size())return -1;
     else return idx;
 }
+
+pair <string, string> getOpcodeAndOpernad(string line) {
+    line = removeLeadingSpaces(line);
+    inr len = line.length();
+
+    string op1 = "";
+    int i = 0;
+
+    for (; i < len; i++) {
+        if (lines[i] == ' ') {
+            i++;
+            break;
+        }
+
+        op1 += lines[i];
+    }
+
+    string op2 = "";
+
+    for (; i < len; i++) {
+        if (lines[i] == ' ') {
+            i++;
+            break;
+        }
+
+        op2 += lines[i];
+    }
+
+    op2 = removeLeadingSpaces(op2);
+
+    return make_pair(op1, op2);
+
+}
+
+int passOne(vector <int> lines) {
+    int lc = 0;
+    int lineNumber = 0;
+    int len = lines.length();
+
+    while (lineNumber < len) {
+        string line = lines[lineNumber];
+        int comment = hasComment(line);
+
+        if (comment != -1) {
+            line = line.substr(0, comment);
+        }
+
+        if (line.length() == 0) {
+            lineNumber++;
+            continue;
+        }
+
+        int label = hasSymbol(line);
+        if (label != -1) {
+            string symbol = line.substr(0, label);
+            addSymbol(symbol, lc, lineNumber);
+            line = line.substr(label + 1);
+        }
+
+        auto split = getOpcodeAndOpernad(line);
+        string opc = split.first;
+        string opr = split.second;
+
+        if (lineNumber == len - 1) {
+            if (opc != "STP") {
+                errors.push_back(make_pair(lineNumber, "ERROR : End statement missing, expected STP"));
+            }
+        }
+
+        if (opcodes.count(opc) == 0) {
+            errors.push_back(make_pair(lineNumber, "ERROR : " + opc + " not recognised"));
+        } else {
+            if (opr.length() == 0 && opcodes[opc].second != 0) {
+                errors.push_back(make_pair(lineNumber, "ERROR : Opcode expects 1 argument, none given"));
+            }
+        }
+
+        if (symbolTable.count(opr) == 0) {
+            if (isValidSymbol(opr)) {
+                if (opc.find('BR') != string::npos) {
+                    symbolTable[opr] = make_pair(-1, lineNumber);
+                } else {
+                    symbolTable[opr] = make_pair(-2, lineNumber);
+                }
+            }
+
+        } else {
+            if (opc.find('BR') != string::npos && symbolTable[opr].first == -2) {
+                 errors.push_back(make_pair(lineNumber, "ERROR : Variable name can't be used as a jump location"));
+            }
+
+            if (opc.find('BR') == string :: npos && symbolTable[opr].first == -1) {
+                errors.push_back(make_pair(lineNumber, "ERROR : Invalid use of " + opr + ", it has already been used as a jump location."));
+            }
+        }
+
+        lineNumber += 1;
+        lc += 12;
+
+    }
+
+    return lc;
+
+}
+
 int main() {
 
     string filename = "opcode.assm";
     opcodes = opcodeMap(filename);
-    
 
     // cout << "Opcode Table : " << endl;
     // cout << "Assembly   Opcode  Type" << endl;
