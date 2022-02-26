@@ -3,28 +3,13 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <algorithm>
 using namespace std;
 
 vector <pair <int, string> > errors;
 map <string, pair <int, int> > opcodes;
 map <string, pair <int,int> > symbolTable;
-vector <string> instruction;
-vector <string> getInstructionVector(string filename){
-    string line;
-    vector <string> instructions;
-    ifstream input_file(filename);
-    if(!input_file.is_open()){
-        cerr << "Could not open the file - '"
-             << filename << "'" << endl;
-        return;
-    }
-    else{
-        while (getline(input_file, line)){
-            if(line.size() != 0)instructions.push_back(line);
-        }
-    }
-    return instructions;
-}
+
 string removeLeadingSpaces(string line) {
     int i = 0;
     int len = line.length();
@@ -38,6 +23,24 @@ string removeLeadingSpaces(string line) {
     }
 
     return line.substr(i);
+}
+
+
+vector <string> getInstructionVector(string filename){
+    string line;
+    vector <string> instructions;
+    ifstream input_file(filename);
+    if(!input_file.is_open()){
+        cerr << "Could not open the file - '"
+             << filename << "'" << endl;
+        return instructions;
+    }
+    else{
+        while (getline(input_file, line)){
+            if(line.size() != 0)instructions.push_back(removeLeadingSpaces(line));
+        }
+    }
+    return instructions;
 }
 
 bool isValidSymbol(string symbol, int line) {
@@ -239,6 +242,12 @@ int passOne(vector <string> lines) {
             }
         }
 
+        if (opr.length() == 0) {
+            lineNumber += 1;
+            lc += 12;
+            continue;
+        }
+
         if (symbolTable.count(opr) == 0) {
             if (isValidSymbol(opr, lineNumber)) {
                 if (opc.find("BR") != string::npos) {
@@ -267,12 +276,49 @@ int passOne(vector <string> lines) {
 
 }
 
+int addressingVariables(int lc) {
+    vector <pair <int,string> > temp;
+    for (auto symbol : symbolTable) {
+       int lineNo = symbolTable[symbol.first].second;
+       int type = symbolTable[symbol.first].first;
+
+       if (lineNo != -1 && type == -2) {
+           temp.push_back(make_pair(lineNo, symbol.first));
+       } else if (lineNo != -1 && type == -1) {
+           errors.push_back(make_pair(lineNo, "ERROR : Label " + symbol.first + " used but never defined"));
+       }
+    }
+
+    sort(temp.begin(), temp.end());
+
+    for (auto tem : temp) {
+        symbolTable[tem.second] = make_pair(lc, -1);
+        lc += 12;
+    }
+
+    return 12;
+    
+}
+
 
 int main() {
 
+    cout << endl;
+
     string filename = "opcode.assm";
     opcodes = opcodeMap(filename);
+    vector <string> instruction = getInstructionVector("input.txt");
+    int x = passOne(instruction);
+    cout << x << endl;
+    addressingVariables(x);
 
+    for (auto err : errors) {
+        cout << err.first << " " << err.second << endl;
+    }
+
+    for (auto sym : symbolTable) {
+        cout << sym.first << " " << sym.second.first << " " << sym.second.second << endl;
+    }
     // cout << "Opcode Table : " << endl;
     // cout << "Assembly   Opcode  Type" << endl;
     // for (pair <string,pair <int, int> > x : opcodes) {
