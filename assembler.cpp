@@ -9,6 +9,29 @@ using namespace std;
 vector <pair <int, string> > errors;
 map <string, pair <int, int> > opcodes;
 map <string, pair <int,int> > symbolTable;
+map <string, int> opcodeTable;
+
+string convertIntoBits(int num, int bits) {
+    string binary = "";
+    while (num > 0) {
+        int rem = num % 2;
+        binary += to_string(rem);
+        num = num / 2;
+    }
+
+    reverse(binary.begin(), binary.end());
+
+    int len = binary.length();
+
+    string add = "";
+
+    for (int i = 1; i <= bits - len; i++) {
+        add += '0';
+    }
+
+    binary = add + binary;
+    return binary;
+}
 
 string removeLeadingSpaces(string line) {
     int i = 0;
@@ -194,7 +217,7 @@ void addSymbol(string symbol, int lc, int lineNo){
     if((symbolTable.count(symbol) == 1)){
         if(symbolTable[symbol].second != -1){
             if(symbolTable[symbol].first == -2){
-                errors.push_back(make_pair(lineNo, "ERROR: Variable " + symbol + " used as Label"));
+                errors.push_back(make_pair(lineNo, "ERROR: Variable " + symbol + " used as Label name"));
                 return;
             }
         }
@@ -253,6 +276,7 @@ int passOne(vector <string> lines) {
         if (opcodes.count(opc) == 0) {
             errors.push_back(make_pair(lineNumber, "ERROR : Opcode " + opc + " not recognised"));
         } else {
+            opcodeTable[opc] = opcodes[opc].first;
             if (opr.length() == 0 && opcodes[opc].second != 0) {
                 errors.push_back(make_pair(lineNumber, "ERROR : Opcode " + opc + " expects 1 argument, none given"));
             }
@@ -275,7 +299,7 @@ int passOne(vector <string> lines) {
 
         } else {
             if (opc.find("BR") != string::npos && symbolTable[opr].first == -2) {
-                 errors.push_back(make_pair(lineNumber, "ERROR : Variable name can't be used as a jump location"));
+                 errors.push_back(make_pair(lineNumber, "ERROR : Variable name " + opr + " can't be used as a jump location"));
             }
 
             if (opc.find("BR") == string :: npos && symbolTable[opr].first == -1) {
@@ -302,6 +326,8 @@ int addressingVariables(int lc) {
            temp.push_back(make_pair(lineNo, symbol.first));
        } else if (lineNo != -1 && type == -1) {
            errors.push_back(make_pair(lineNo, "ERROR : Label " + symbol.first + " used but never defined"));
+       } else {
+           symbolTable[symbol.first] = make_pair(type, 1);
        }
     }
 
@@ -316,6 +342,48 @@ int addressingVariables(int lc) {
     
 }
 
+string insertSpaces(int n) {
+    string space = "";
+
+    for (int i = 0; i < n; i++) {
+        space += ' ';
+    }
+
+    return space;
+}
+
+void printSymbolTable() {
+    cout << "SYMBOL" << insertSpaces(16) << "TYPE" << insertSpaces(16) << "ADDRESS" << endl;
+
+    for (auto symbol : symbolTable) {
+        string sym = symbol.first;
+        cout << sym << insertSpaces(22 - sym.length());
+        
+        if (symbol.second.second == 1) {
+            cout << "Label" << insertSpaces(15);
+        } else {
+            cout << "Variable" << insertSpaces(12);
+        }
+
+        cout << convertIntoBits(symbol.second.first, 8) << endl;
+    }
+}
+
+void printOpcodes() {
+    cout << "PNEUMONIC" << insertSpaces(16) << "OPCODE" << insertSpaces(16) << "TYPE" << endl;
+
+    for (auto op : opcodes) {
+        cout << op.first << insertSpaces(22) << convertIntoBits(op.second.first, 4) << insertSpaces(19) << op.second.second << endl;
+    }
+}
+
+void printOpcodeTable() {
+    cout << "PNEUMONIC" << insertSpaces(16) << "OPCODE" << endl;
+
+    for (auto op : opcodeTable) {
+        cout << op.first << insertSpaces(22) << convertIntoBits(op.second, 4) << endl;
+    }
+}
 
 int main() {
 
@@ -323,6 +391,10 @@ int main() {
 
     string filename = "opcode.assm";
     opcodes = opcodeMap(filename);
+    cout << "                       OPCODES :          " << endl << endl;
+    printOpcodes();
+    cout << endl << endl;
+
     vector <string> instruction = getInstructionVector("input.txt");
     int x = passOne(instruction);
     int finalLc = addressingVariables(x);
@@ -332,19 +404,20 @@ int main() {
     }
 
     for (auto err : errors) {
-        cout << "In line number " << err.first << " " << err.second << endl;
+        cout << "* In line number " << err.first + 1 << " " << err.second << endl;
     }
+    cout << endl << endl;
 
-    for (auto sym : symbolTable) {
-        cout << sym.first << " " << sym.second.first << " " << sym.second.second << endl;
-    }
+   
 
-
-    cout << "Opcode Table : " << endl;
-    cout << "Assembly   Opcode  Type" << endl;
-    for (pair <string,pair <int, int> > x : opcodes) {
-        cout << x.first << "        " << x.second.first << "        " <<x.second.second << endl;
-    }
+    cout << "                   SYMBOL TABLE :          " << endl << endl;
+    printSymbolTable();
+    cout << endl << endl;
+    cout << "                   OPCODE TABLE :          " << endl << endl;
+    printOpcodeTable();
+    
+    
+  
 
     return 0;
 }
