@@ -68,7 +68,7 @@ bool isValidSymbol(string symbol, int line) {
 
     for (int i = 1; i < len; i++) {
         if ((alpha + numbers).find(symbol[i]) == string :: npos) {
-             errors.push_back(make_pair(line, "ERROR : Invalid symbol name : contains special characters"));
+             errors.push_back(make_pair(line, "ERROR : Invalid symbol name " + symbol + " contains special characters"));
             return false;
         }
     }
@@ -139,7 +139,7 @@ int hasSymbol(string instruction){
     else return idx;
 }
 
-pair <string, string> getOpcodeAndOpernad(string line) {
+pair <string, string> getOpcodeAndOpernad(string line, int lineNo) {
     line = removeLeadingSpaces(line);
     int len = line.length();
 
@@ -155,6 +155,10 @@ pair <string, string> getOpcodeAndOpernad(string line) {
         op1 += line[i];
     }
 
+    if (op1.length() == 0) {
+        errors.push_back(make_pair(lineNo, "ERROR: No Instruction provided to label"));
+    }
+
     string op2 = "";
 
     for (; i < len; i++) {
@@ -164,6 +168,12 @@ pair <string, string> getOpcodeAndOpernad(string line) {
         }
 
         op2 += line[i];
+    }
+
+    for (; i < len; i++) {
+        if (line[i] != ' ') {
+            errors.push_back(make_pair(lineNo, "ERROR: More than 1 operand provided"));
+        }
     }
 
     op2 = removeLeadingSpaces(op2);
@@ -224,7 +234,7 @@ int passOne(vector <string> lines) {
             line = line.substr(label + 1);
         }
 
-        auto split = getOpcodeAndOpernad(line);
+        auto split = getOpcodeAndOpernad(line, lineNumber);
         string opc = split.first;
         string opr = split.second;
 
@@ -234,11 +244,17 @@ int passOne(vector <string> lines) {
             }
         }
 
+        if (opc.length() == 0) {
+            lineNumber += 1;
+            lc += 12;
+            continue;
+        }
+
         if (opcodes.count(opc) == 0) {
-            errors.push_back(make_pair(lineNumber, "ERROR : " + opc + " not recognised"));
+            errors.push_back(make_pair(lineNumber, "ERROR : Opcode " + opc + " not recognised"));
         } else {
             if (opr.length() == 0 && opcodes[opc].second != 0) {
-                errors.push_back(make_pair(lineNumber, "ERROR : Opcode expects 1 argument, none given"));
+                errors.push_back(make_pair(lineNumber, "ERROR : Opcode " + opc + " expects 1 argument, none given"));
             }
         }
 
@@ -296,7 +312,7 @@ int addressingVariables(int lc) {
         lc += 12;
     }
 
-    return 12;
+    return lc;
     
 }
 
@@ -309,21 +325,26 @@ int main() {
     opcodes = opcodeMap(filename);
     vector <string> instruction = getInstructionVector("input.txt");
     int x = passOne(instruction);
-    cout << x << endl;
-    addressingVariables(x);
+    int finalLc = addressingVariables(x);
+
+    if (finalLc > 255) {
+        errors.push_back(make_pair(0, "ERROR : Address Overflow due to more number of instructions and symbols(LIMIT-255)."));
+    }
 
     for (auto err : errors) {
-        cout << err.first << " " << err.second << endl;
+        cout << "In line number " << err.first << " " << err.second << endl;
     }
 
     for (auto sym : symbolTable) {
         cout << sym.first << " " << sym.second.first << " " << sym.second.second << endl;
     }
-    // cout << "Opcode Table : " << endl;
-    // cout << "Assembly   Opcode  Type" << endl;
-    // for (pair <string,pair <int, int> > x : opcodes) {
-    //     cout << x.first << "        " << x.second.first << "        " <<x.second.second << endl;
-    // }
+
+
+    cout << "Opcode Table : " << endl;
+    cout << "Assembly   Opcode  Type" << endl;
+    for (pair <string,pair <int, int> > x : opcodes) {
+        cout << x.first << "        " << x.second.first << "        " <<x.second.second << endl;
+    }
 
     return 0;
 }
