@@ -415,9 +415,6 @@ int main() {
     cout << endl << endl;
     cout << "                   OPCODE TABLE :          " << endl << endl;
     printOpcodeTable();
-    
-    
-  
 
     return 0;
 }
