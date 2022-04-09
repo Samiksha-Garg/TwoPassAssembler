@@ -385,6 +385,44 @@ void printOpcodeTable() {
     }
 }
 
+void passTwo(vector <string> lines) {
+    int lineNumber = 0;
+    int len = lines.size();
+
+    while (lineNumber < len) {
+        string line = lines[lineNumber];
+        int comment = hasComment(line);
+
+        if (comment != -1) {
+            line = line.substr(0, comment);
+        }
+
+        if (line.length() == 0) {
+            lineNumber++;
+            continue;
+        }
+
+        int label = hasSymbol(line);
+        if (label != -1) {
+            line = line.substr(label + 1);
+        }
+
+        auto split = getOpcodeAndOpernad(line, lineNumber);
+        string opc = split.first;
+        string opr = split.second;
+
+        cout << convertIntoBits(opcodes[opc].first, 4) << " ";
+
+        if (opr.length() == 0) {
+            cout << convertIntoBits(0, 8) << endl;
+        } else {
+            cout << convertIntoBits(symbolTable[opr].first, 8) << endl;
+        }
+       
+        lineNumber += 1;
+    }
+}
+
 int main() {
 
     cout << endl;
@@ -403,18 +441,21 @@ int main() {
         errors.push_back(make_pair(0, "ERROR : Address Overflow due to more number of instructions and symbols(LIMIT-255)."));
     }
 
-    for (auto err : errors) {
-        cout << "* In line number " << err.first + 1 << " " << err.second << endl;
+    if (errors.size() != 0) {
+        cout << "                  ERRORS :          " << endl << endl;
+        for (auto err : errors) {
+            cout << "* In line number " << err.first + 1 << " " << err.second << endl;
+        }
+        cout << endl << endl;
+    } else {
+         cout << "                   MACHINE CODE :          " << endl << endl;
+        passTwo(instruction);
+        cout << "                   SYMBOL TABLE :          " << endl << endl;
+        printSymbolTable();
+        cout << endl << endl;
+        cout << "                   OPCODE TABLE :          " << endl << endl;
+        printOpcodeTable();
     }
-    cout << endl << endl;
-
-   
-
-    cout << "                   SYMBOL TABLE :          " << endl << endl;
-    printSymbolTable();
-    cout << endl << endl;
-    cout << "                   OPCODE TABLE :          " << endl << endl;
-    printOpcodeTable();
 
     return 0;
 }
