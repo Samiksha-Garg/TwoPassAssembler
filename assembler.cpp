@@ -261,11 +261,11 @@ int passOne(vector <string> lines) {
         string opc = split.first;
         string opr = split.second;
 
-        if (lineNumber == len - 1) {
-            if (opc != "STP") {
-                errors.push_back(make_pair(lineNumber, "ERROR : End statement missing, expected STP"));
-            }
-        }
+        // if (lineNumber == len - 1) {
+        //     if (opc != "STP") {
+        //         errors.push_back(make_pair(lineNumber, "ERROR : End statement missing, expected STP"));
+        //     }
+        // }
 
         if (opc.length() == 0) {
             lineNumber += 1;
@@ -279,6 +279,10 @@ int passOne(vector <string> lines) {
             opcodeTable[opc] = opcodes[opc].first;
             if (opr.length() == 0 && opcodes[opc].second != 0) {
                 errors.push_back(make_pair(lineNumber, "ERROR : Opcode " + opc + " expects 1 argument, none given"));
+            }
+
+            if (opr.length() != 0 && opcodes[opc].second == 0) {
+                                errors.push_back(make_pair(lineNumber, "ERROR : Opcode " + opc + " expects none argument, more given"));
             }
         }
 
@@ -433,7 +437,7 @@ int main() {
     printOpcodes();
     cout << endl << endl;
 
-    vector <string> instruction = getInstructionVector("input.txt");
+    vector <string> instruction = getInstructionVector("input3.txt");
     int x = passOne(instruction);
     int finalLc = addressingVariables(x);
 
